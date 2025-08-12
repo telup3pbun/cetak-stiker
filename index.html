@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Website Cetak Label PLN</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: row;
+      min-height: 100vh;
+    }
+    aside {
+      width: 220px;
+      background: #2c3e50;
+      color: white;
+      padding: 20px 10px;
+    }
+    aside h2 {
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+    aside a {
+      display: block;
+      color: white;
+      text-decoration: none;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      border-radius: 4px;
+    }
+    aside a:hover, aside a.active {
+      background-color: #34495e;
+    }
+    main {
+      flex: 1;
+      padding: 20px;
+      background: #f8f9fa;
+    }
+    .hidden {
+      display: none;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 600px;
+      margin-bottom: 20px;
+    }
+    label {
+      font-weight: bold;
+    }
+    input, select {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin-top: 10px;
+      max-width: 100%;
+      height: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 6px 10px;
+    }
+    th {
+      background-color: #e9ecef;
+    }
+
+    @media screen and (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+      aside {
+        width: 100%;
+        height: auto;
+      }
+      form {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <h2>Cetak Stiker Mobile</h2>
+    <a href="#" onclick="showMenu('cetak')" class="active">Cetak Stiker</a>
+    <a href="#" onclick="showMenu('riwayat')">Riwayat Cetak</a>
+  </aside>
+
+  <main>
+    <div id="cetak" class="menu">
+      <h3>Form Cetak Label PLN UP3 PBN</h3>
+      <form id="labelForm">
+        <label>Nama Pencetak:
+          <select id="pencetak">
+            <option value="Admin 1">Admin 1</option>
+            <option value="Admin 2">Admin 2</option>
+          </select>
+        </label>
+        <label>IDPEL: <input type="text" id="idpel" required></label>
+        <label>Nama: <input type="text" id="nama"></label>
+        <label>Alamat: <input type="text" id="alamat"></label>
+        <label>Tarif/Daya: <input type="text" id="tarifdaya"></label>
+        <label>Kode RBM/Meter: <input type="text" id="kode"></label>
+        <label>ULP: <input type="text" id="ulp"></label>
+        <button type="submit">Cetak PDF</button>
+      </form>
+
+      <h4>Preview Label:</h4>
+      <canvas id="previewCanvas" width="500" height="250"></canvas>
+    </div>
+
+    <div id="riwayat" class="menu hidden">
+      <h3>Riwayat Cetak Stiker</h3>
+      <table>
+        <thead>
+          <tr><th>No</th><th>Nama Pencetak</th><th>IDPEL</th><th>Nama</th><th>Waktu</th></tr>
+        </thead>
+        <tbody id="riwayatBody"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <div id="qrcode" style="display:none;"></div>
+
+  <script>
+    function showMenu(menuId) {
+      document.querySelectorAll('.menu').forEach(m => m.classList.add('hidden'));
+      document.getElementById(menuId).classList.remove('hidden');
+      document.querySelectorAll('aside a').forEach(a => a.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    const form = document.getElementById('labelForm');
+    const riwayatBody = document.getElementById('riwayatBody');
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const qrDiv = document.getElementById('qrcode');
+    let riwayatData = [];
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const idpel = document.getElementById('idpel').value.trim();
+      const nama = document.getElementById('nama').value.trim();
+      const alamat = document.getElementById('alamat').value.trim();
+      const tarifdaya = document.getElementById('tarifdaya').value.trim();
+      const kode = document.getElementById('kode').value.trim();
+      const ulp = document.getElementById('ulp').value.trim();
+      const pencetak = document.getElementById('pencetak').value;
+
+      if (!idpel) return alert("Mohon isi IDPEL.");
+
+      qrDiv.innerHTML = '';
+      new QRCode(qrDiv, { text: idpel, width: 1000, height: 1000 });
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const qrCanvas = qrDiv.querySelector('canvas');
+      const qrImg = qrCanvas.toDataURL('image/png');
+
+      // Preview Canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const img = new Image();
+      img.src = qrImg;
+      img.onload = function () {
+        ctx.drawImage(img, 10, 20, 100, 100);
+        ctx.font = "bold 20px Arial";
+        ctx.fillText(idpel, 120, 40);
+        ctx.font = "16px Arial";
+        ctx.fillText(nama, 120, 70);
+        ctx.fillText(alamat, 120, 100);
+        ctx.fillText(tarifdaya + "  " + kode, 120, 130);
+        ctx.font = "12px Arial";
+        ctx.fillText(`PT PLN (PERSERO) ULP ${ulp}`, 120, 160);
+        ctx.font = "italic 12px Arial";
+        ctx.fillText("Catat Meter Mandiri Tgl 23 - 27 di PLN Mobile", 10, 200);
+      };
+
+      // PDF
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [100, 50] });
+      pdf.setFont("helvetica", "normal");
+      pdf.addImage(qrImg, 'PNG', 4, 7, 22, 22);
+      pdf.setFontSize(22); pdf.setFont(undefined, 'bold'); pdf.text(idpel, 28, 12);
+      pdf.setFontSize(15); pdf.setFont(undefined, 'normal'); pdf.text(nama, 28, 18);
+      pdf.setFontSize(11); pdf.text(alamat, 28, 23);
+      pdf.setFontSize(10); pdf.setFont(undefined, 'bold'); pdf.text(tarifdaya, 28, 29);
+      pdf.text(kode, 80 - pdf.getTextWidth(kode), 29);
+      pdf.setFontSize(9); pdf.setFont(undefined, 'normal');
+      pdf.text(`PT PLN (PERSERO) ULP ${ulp}`, 28, 35);
+      pdf.setFontSize(9); pdf.text("Lakukan Catat Meter Mandiri Setiap Tgl 23 - 27 di PLN Mobile", 4, 42);
+      pdf.setFont(undefined, 'italic');
+      pdf.text("Download Aplikasi PLN Mobile di App Store & Play Store", 4, 46);
+      pdf.save(`${idpel}.pdf`);
+
+      riwayatData.push({
+        pencetak, idpel, nama,
+        waktu: new Date().toLocaleString('id-ID')
+      });
+      renderRiwayat();
+    });
+
+    function renderRiwayat() {
+      riwayatBody.innerHTML = '';
+      riwayatData.forEach((item, i) => {
+        riwayatBody.innerHTML += `<tr>
+          <td>${i + 1}</td><td>${item.pencetak}</td><td>${item.idpel}</td><td>${item.nama}</td><td>${item.waktu}</td>
+        </tr>`;
+      });
+    }
+
+    showMenu('cetak');
+  </script>
+</body>
+</html>
+
+
