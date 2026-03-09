@@ -162,7 +162,7 @@ async function drawSticker(pdf,data,isFirst){
   pdf.line(2,9,48,9);
   pdf.addImage(qrImg,"PNG",2,12,13,13);
 
-  pdf.setFontSize(7.5);
+  pdf.setFontSize(6.5);
   pdf.text(data.nama.toUpperCase(),16,13);
   pdf.text(data.kode,16,17);
 
