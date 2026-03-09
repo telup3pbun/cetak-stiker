@@ -159,7 +159,7 @@ async function drawSticker(pdf,data,isFirst){
   pdf.setFont("helvetica","bold");
   pdf.setFontSize(19);
   pdf.text(data.idpel,25,8,{align:"center"});
-  pdf.line(2,9,48,9);
+  pdf.line(2,10,48,10);
   pdf.addImage(qrImg,"PNG",2,12,13,13);
 
   pdf.setFontSize(6.5);
